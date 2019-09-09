@@ -4,23 +4,42 @@
 import numpy as np
 import pandas as pd
 from functools import wraps
+
 from sklearn.metrics import (
     mean_squared_error,
     mean_absolute_error,
     r2_score,
     explained_variance_score,
     roc_auc_score,
-    log_loss,
+    log_loss
 )
 
-from reco_utils.common.constants import (
+# from reco_utils.common.constants import (
+#     DEFAULT_USER_COL,
+#     DEFAULT_ITEM_COL,
+#     DEFAULT_RATING_COL,
+#     DEFAULT_PREDICTION_COL,
+#     DEFAULT_K,
+#     DEFAULT_THRESHOLD,
+# )
+
+from ..configs.constants import (
     DEFAULT_USER_COL,
+    DEFAULT_USER_BUDGET,
+    DEFAULT_PURCHASED_COUNT,
+    DEFAULT_NATIONALITY ,
     DEFAULT_ITEM_COL,
-    DEFAULT_RATING_COL,
-    DEFAULT_PREDICTION_COL,
+    DEFAULT_ITEM_CATEGORY,
+    DEFAULT_RETAIL_PRICE,
+    MERCHANT_PRODUCT_PRICE,
+    DISCOUNTED_PRICE,
+    MERCHANT_CATEGORY_ID,
+    PRICE_LEVEL,
     DEFAULT_K,
-    DEFAULT_THRESHOLD,
+    DEFAULT_THRESHOLD
 )
+
+
 from reco_utils.dataset.pandas_df_utils import (
     has_columns,
     has_same_base_dtype,

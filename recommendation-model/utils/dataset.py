@@ -79,25 +79,16 @@ DEFAULT_HEADER = (
 )
 
 
-
 def load_pandas_df(
     header=None):
     """
     Loads the Mongodb  dataset as pd.DataFrame.
-    To load customer information only, you can use load_item_df function.
 
-    Args:
-        size (str): Size of the data to load. One of ("100k", "1m", "10m", "20m").
-        header (list or tuple or None): Rating dataset header.
-        local_cache_path (str): Path (directory or a zip file) to cache the downloaded zip file.
-            If None, all the intermediate files will be stored in a temporary directory and removed after use.
-        title_col (str): Movie title column name. If None, the column will not be loaded.
-        genres_col (str): Genres column name. Genres are '|' separated string.
-            If None, the column will not be loaded.
-        year_col (str): Movie release year column name. If None, the column will not be loaded.
-
+    Args: 
+        mydb -- The database which hosts  the collection of datasets which are to be transformed to pandas dataframe for training the recommendation system.
+        
     Returns:
-        pd.DataFrame: Movie rating dataset.
+        pd.DataFrame: The User - product relation dataset.
         
 
     **Examples**
@@ -123,9 +114,7 @@ def load_pandas_df(
         raise ValueError(ERROR_HEADER)
     elif len(header) > 7:
         warnings.warn(WARNING_FCGL_HEADER)
-        # header = header[:4]
 
-    #  fcgl_column = header[1]
     
     # collection_name : Collection name that is used to train the vowpal wabbit model.
     # collection_name : Since this is what helps in recommnding we will push in the intial user data we get from the user while he/she
@@ -136,7 +125,6 @@ def load_pandas_df(
     user_purchase_data = mydb["user_purchase_data"]
     product_data = mydb["product_data"]
     product_category_data = mydb["product_category_data"]
-    
     
     for user in user_data :
         new_data = user

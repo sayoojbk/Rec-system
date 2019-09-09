@@ -10,10 +10,10 @@ from time import process_time
 import pandas as pd
 import papermill as pm
 
-from reco_utils.common.notebook_utils import is_jupyter
-from reco_utils.dataset.movielens import load_pandas_df
-from reco_utils.dataset.python_splitters import python_random_split
-from reco_utils.evaluation.python_evaluation import (rmse, mae, exp_var, rsquared, get_top_k_items,
+
+from ..utils.dataset import load_pandas_df
+from ..utils.python_splitters import python_random_split
+from ..utils.evaluation import (rmse, mae, exp_var, rsquared, get_top_k_items,
                                                      map_at_k, ndcg_at_k, precision_at_k, recall_at_k)
 
 print("System version: {}".format(sys.version))
@@ -31,18 +31,18 @@ def to_vw(df, output, logistic=False):
         tmp = df.reset_index()
 
         # we need to reset the rating type to an integer to simplify the vw formatting
-        tmp['rating'] = tmp['rating'].astype('int64')
+        tmp['purchase_count'] = tmp['purchase_count'].astype('int64')
         
         # convert rating to binary value
         if logistic:
-            tmp['rating'] = tmp['rating'].apply(lambda x: 1 if x >= 3 else -1)
+            tmp['purchase_count'] = tmp['puchase_count'].apply(lambda x: 1 if x >= 1 else -1)
         
         # convert each row to VW input format (https://github.com/VowpalWabbit/vowpal_wabbit/wiki/Input-format)
         # [label] [tag]|[user namespace] [user id feature] |[item namespace] [movie id feature]
         # label is the true rating, tag is a unique id for the example just used to link predictions to truth
         # user and item namespaces separate the features to support interaction features through command line options
         for _, row in tmp.iterrows():
-            f.write('{rating:d} {index:d}|user {userID:d} |item {itemID:d}\n'.format_map(row))
+            f.write('{purchase_count:d} {index:d}|user {userID:d} |item {productID:d}\n'.format_map(row))
 
 
 def run_vw(train_params, test_params, test_data, prediction_path, logistic=False):
@@ -69,14 +69,15 @@ def run_vw(train_params, test_params, test_data, prediction_path, logistic=False
     
     # read in predictions
     pred_df = pd.read_csv(prediction_path, delim_whitespace=True, names=['prediction'], index_col=1).join(test_data)
-    pred_df.drop("rating", axis=1, inplace=True)
+    pred_df.drop("purchase_count", axis=1, inplace=True)
 
     test_df = test_data.copy()
     if logistic:
         # make the true label binary so that the metrics are captured correctly
-        test_df['rating'] = test['rating'].apply(lambda x: 1 if x >= 3 else -1)
+        test_df['purchase_count'] = test['purchase_count'].apply(lambda x: 1 if x >= 3 else -1)
     else:
-        # ensure results are integers in correct range
+        # ensure results are integers in correct range  
+        # This 5 is for the movie ratings range not sure what to keep for our recommendation. 
         pred_df['prediction'] = pred_df['prediction'].apply(lambda x: int(max(1, min(5, round(x)))))
 
     # calculate metrics
@@ -87,7 +88,7 @@ def run_vw(train_params, test_params, test_data, prediction_path, logistic=False
     result['Explained Variance'] = exp_var(test_df, pred_df)
     result['Train Time (ms)'] = (train_stop - train_start) * 1000
     result['Test Time (ms)'] = (test_stop - test_start) * 1000
-    
+
     return result
 
 # create temp directory to maintain data files
@@ -104,14 +105,11 @@ all_test_path = os.path.join(tmpdir.name, 'new_test.dat')
 all_prediction_path = os.path.join(tmpdir.name, 'new_prediction.dat')
 
 
-# # 1. Load & Transform Data
-
-# Select MovieLens data size: 100k, 1m, 10m, or 20m
-MOVIELENS_DATA_SIZE = '100k'
-TOP_K = 10
+# # 1. TOP Recommendations to be displayed.
+TOP_K = 5
 
 # load movielens data 
-df = load_pandas_df(MOVIELENS_DATA_SIZE)
+df = load_pandas_df()
 
 # split data to train and test sets, default values take 75% of each users ratings as train, and 25% as test
 train, test = python_random_split(df, 0.75)
@@ -310,14 +308,12 @@ items['key'] = 1
 all_pairs = pd.merge(users, items, on='key').drop(columns=['key'])
 
 # now combine with training data and keep only entries that were note in training
-merged = pd.merge(train[['userID', 'itemID', 'rating']], all_pairs, on=["userID", "itemID"], how="outer")
-all_user_items = merged[merged['rating'].isnull()].fillna(0).astype('int64')
+merged = pd.merge(train[['userID', 'itemID', 'purchase_count']], all_pairs, on=["userID", "itemID"], how="outer")
+all_user_items = merged[merged['purchase_count'].isnull()].fillna(0).astype('int64')
 
 # save in vw format (this can take a while)
 to_vw(df=all_user_items, output=all_test_path)
 
-
-# In[8]:
 
 # run the saved model (linear regression with interactions) on the new dataset
 test_start = process_time()
@@ -335,7 +331,7 @@ top_k.head()
 
 # get ranking metrics
 args = [test, top_k]
-kwargs = dict(col_user='userID', col_item='itemID', col_rating='rating', col_prediction='prediction',
+kwargs = dict(col_user='userID', col_item='itemID', col_rating='purchase_count', col_prediction='prediction',
               relevancy_method='top_k', k=TOP_K)
 
 rank_metrics = {'MAP': map_at_k(*args, **kwargs), 
@@ -351,20 +347,6 @@ print('\n'.join(all_results))
 
 
 # # 6. Cleanup
-
-# record results for testing
-if is_jupyter():
-    pm.record('rmse', saved_result['RMSE'])
-    pm.record('mae', saved_result['MAE'])
-    pm.record('rsquared', saved_result['R2'])
-    pm.record('exp_var', saved_result['Explained Variance'])
-    pm.record("train_time", saved_result['Train Time (ms)'])
-    pm.record("test_time", test_time)
-    pm.record('map', rank_metrics['MAP'])
-    pm.record('ndcg', rank_metrics['NDCG'])
-    pm.record('precision', rank_metrics['Precision'])
-    pm.record('recall', rank_metrics['Recall'])
-
 
 tmpdir.cleanup()
 

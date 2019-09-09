@@ -14,7 +14,7 @@ DEFAULT_NATIONALITY = "nationality"
 
 # The product data 
 DEFAULT_RETAIL_PRICE = "itemPrice"
-DEFAULT_ITEM_COL = "itemId"                           # This is what item user prefers from the list of items available.
+DEFAULT_ITEM_COL = "product_id"                           # This is what item user prefers from the list of items available.
 DEFAULT_CATEGORY = "itemCategory"
 
 
@@ -36,6 +36,13 @@ MERCHANT_CATEGORY_ID = "merchantCategoryId"
 PRICE_LEVEL = "priceLevel"   # This is the price level of the merchant like is this a expensive place or cheap place like that.
 
 
+
+# Filtering variables
+DEFAULT_K = 10
+DEFAULT_THRESHOLD = 10
+
+# Other
+SEED = 42
 
 
 
