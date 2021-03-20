@@ -10,7 +10,7 @@ flask-restplus==0.12.1
 Flask-Script==2.0.6
 Flask-Testing==0.7.1
 itsdangerous==1.1.0
-Jinja2==2.10.1
+Jinja2==2.11.3
 jsonschema==3.0.1
 Mako==1.0.14
 MarkupSafe==1.1.1
